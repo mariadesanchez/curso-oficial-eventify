@@ -1,6 +1,6 @@
 import { FC, useEffect, useState } from "react";
 import { AuthContext } from "./AuthContext";
-import { AuthProviderProps, AuthState, UserMetadata } from "./types";
+import { AuthProviderProps, AuthState, UserMetadata, AuthContextType } from "./types"; // Asegúrate de que AuthContextType esté bien definido
 import { supabase } from "../../services/supabaseClient";
 import { AuthError } from "@supabase/supabase-js";
 
@@ -44,22 +44,36 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     };
   }, []);
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (email: string, password: string): Promise<{ error: AuthError | null; data: { user: any; session: any } | null }> => {
+    if (!email || !password) {
+      return { error: new Error("El email y la contraseña son obligatorios.") as AuthError, data: null };
+    }
+
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      return { error: new Error("El email no tiene un formato válido.") as AuthError, data: null };
+    }
+
+    if (password.length < 6) {
+      return { error: new Error("La contraseña debe tener al menos 6 caracteres.") as AuthError, data: null };
+    }
+
     try {
       const { data, error } = await supabase.auth.signUp({ email, password });
-      console.log(data);
-      return { error };
+
+      if (error) {
+        console.error("Error al registrarse:", error.message);
+        return { error, data: null };
+      }
+
+      return { error: null, data };
     } catch (error) {
-      return { error: error as AuthError };
+      return { error: error as AuthError, data: null };
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
 
       return { error };
     } catch (error) {
@@ -73,9 +87,7 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
 
   const updateUserMetadata = async (metadata: UserMetadata) => {
     try {
-      const { data, error } = await supabase.auth.updateUser({
-        data: metadata,
-      });
+      const { data, error } = await supabase.auth.updateUser({ data: metadata });
       if (error) {
         console.error("error al actualizar el usuario", error);
         return { error, data: null };
@@ -91,6 +103,13 @@ export const AuthProvider: FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const value = { ...authState, signUp, signIn, signOut, updateUserMetadata };
+  const value: AuthContextType = {
+    ...authState,
+    signUp,
+    signIn,
+    signOut,
+    updateUserMetadata
+  };
+
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

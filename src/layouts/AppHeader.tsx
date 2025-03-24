@@ -70,9 +70,10 @@ export const AppHeader: FC<AppHeaderProps> = ({ handleDrawerToggle }) => {
             flexGrow: 1,
             fontWeight: 600,
             letterSpacing: "0.5px",
+            // color: "#000"
           }}
         >
-          Eventify
+          Agend.Ar
         </Typography>
 
         <Box sx={{ display: "flex", alignItems: "center" }}>
